@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using GrowTogetherClient.Models;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
@@ -13,7 +15,11 @@ namespace GrowTogetherClient.Controllers
 {
     public class AuthController : Controller
     {
-
+        private readonly IHostingEnvironment hostingEnvironment = null;
+        public AuthController(IHostingEnvironment hostingEnvironment)
+        {
+            this.hostingEnvironment = hostingEnvironment;
+        }
         private static readonly HttpClient client = new HttpClient();
 
 
@@ -31,12 +37,20 @@ namespace GrowTogetherClient.Controllers
             return View();
         }
         [HttpPost]
-        public async Task<ActionResult> UploadFilesAsync(IFormCollection collection)
+        public async Task<ActionResult> UploadFilesAsync(Material material)
         {
-            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "https://localhost:44302/api/account/login");
             Material file = new Material();
-            file.Name = collection["Name"];
-            file.Path = collection["Path"];
+            string uniqueFileName1 = null;
+            string uploadsFolder = Path.Combine(hostingEnvironment.WebRootPath, "images");
+            uniqueFileName1 = Guid.NewGuid().ToString() + "_" + material.Name;
+            string filepath = Path.Combine(uploadsFolder, uniqueFileName1);
+            Console.WriteLine(file.file);
+            material.file.CopyTo(new FileStream(filepath, FileMode.Create));
+
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "https://localhost:44302/api/account/login");
+           
+            file.Name = material.Name;
+            file.Path = filepath;
             var myContent = JsonConvert.SerializeObject(file);
             var stringContent = new StringContent(myContent, Encoding.UTF8, "application/json");
             HttpResponseMessage response = await client.PostAsync("https://localhost:44373/FileUpload", stringContent);
@@ -45,7 +59,6 @@ namespace GrowTogetherClient.Controllers
             //return Json(user);
             if (files != null)
             {
-                
                 return RedirectToAction("Home", "Index");
             }
             else

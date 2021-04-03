@@ -1,5 +1,6 @@
 ﻿using GrowTogether.Models;
 using GrowTogether.Services;
+using GrowTogetherClient.Models;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
@@ -11,72 +12,36 @@ namespace GrowTogether.Controllers
 {
     public class FileService : IFileService
     {
-        public void SaveFile(List<IFormFile> files, string subDirectory)
+        GrowDbContext _context = null;
+        public FileService(GrowDbContext context)
         {
-            subDirectory = subDirectory ?? string.Empty;
-            var target = Path.Combine("..\\Files", subDirectory);
-
-            Directory.CreateDirectory(target);
-
-            files.ForEach(async file =>
-            {
-                if (file.Length <= 0) return;
-                var filePath = Path.Combine(target, file.FileName);
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
-            });
+            _context = context;
         }
-
         public (string fileType, byte[] archiveData, string archiveName) FetechFiles(string subDirectory)
         {
-            var zipName = $"archive-{DateTime.Now.ToString("yyyy_MM_dd-HH_mm_ss")}.zip";
-
-            var files = Directory.GetFiles(Path.Combine("..\\Files", subDirectory)).ToList();
-
-            using (var memoryStream = new MemoryStream())
-            {
-                using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
-                {
-                    files.ForEach(file =>
-                    {
-                        var theFile = archive.CreateEntry(file);
-                        using (var streamWriter = new StreamWriter(theFile.Open()))
-                        {
-                            streamWriter.Write(File.ReadAllText(file));
-                        }
-
-                    });
-                }
-
-                return ("application/zip", memoryStream.ToArray(), zipName);
-            }
-
+            throw new NotImplementedException();
         }
 
-        public static string SizeConverter(long bytes)
+        public void SaveFile(Material material)
         {
-            var fileSize = new decimal(bytes);
-            var kilobyte = new decimal(1024);
-            var megabyte = new decimal(1024 * 1024);
-            var gigabyte = new decimal(1024 * 1024 * 1024);
-
-            switch (fileSize)
+           
+            try
             {
-                case var _ when fileSize < kilobyte:
-                    return $"Less then 1KB";
-                case var _ when fileSize < megabyte:
-                    return $"{Math.Round(fileSize / kilobyte, 0, MidpointRounding.AwayFromZero):##,###.##}KB";
-                case var _ when fileSize < gigabyte:
-                    return $"{Math.Round(fileSize / megabyte, 2, MidpointRounding.AwayFromZero):##,###.##}MB";
-                case var _ when fileSize >= gigabyte:
-                    return $"{Math.Round(fileSize / gigabyte, 2, MidpointRounding.AwayFromZero):##,###.##}GB";
-                default:
-                    return "n/a";
+                Material m = new Material()
+                {
+                    Name = material.Name,
+                    Path = material.Path
+                };
+                _context.Material.Add(m);
+                _context.SaveChanges();
             }
+            catch (Exception)
+            {
 
-
+                throw;
+            }
         }
+
+        
     }
 }

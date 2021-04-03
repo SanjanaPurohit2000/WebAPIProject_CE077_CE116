@@ -11,8 +11,7 @@ namespace GrowTogetherClient.Models
         public int id { get; set; }
         public string Name { get; set; }
         public string Path { get; set; }
-
-        public List<IFormFile> files { get; set; }
+        public IFormFile file { get; set; }
 
     }
 }
